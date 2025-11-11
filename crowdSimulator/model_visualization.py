@@ -7,12 +7,13 @@ from crowd_model import CrowdModel
 from statistics import *
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import io
+import cv2
 
 class SimulationVisualization:
 
     def __init__(self):
         self.model = None
-        self.grid_size = 20
+        self.grid_size = 30
         self.cell_size = 500 // self.grid_size
         self.agent_colors = {}
         self.plots = []
@@ -26,12 +27,16 @@ class SimulationVisualization:
     def draw_grid(self):
         for x in range(self.grid_size):
             for y in range(self.grid_size):
-                rect = pygame.Rect(x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size)
+                rect = pygame.Rect(
+                    x * self.cell_size,
+                    y * self.cell_size,
+                    self.cell_size,
+                    self.cell_size)
                 pygame.draw.rect(self.screen, (200, 200, 200), rect, 1)
 
     def draw_agents(self):
         for agent in self.model.schedule.agents:
-            color = (95, 158, 160)
+            color = (208, 168, 52)
             pygame.draw.circle(self.screen, color, (agent.pos[0] * self.cell_size + self.cell_size // 2,
                                                     agent.pos[1] * self.cell_size + self.cell_size // 2),
                                self.cell_size // 3)
@@ -50,10 +55,16 @@ class SimulationVisualization:
                                                   self.cell_size, self.cell_size))
 
     def draw_obstacles(self):
-        for obj in self.model.obstacles:
-            color = (128, 128, 128)
-            pygame.draw.rect(self.screen, color, (obj.pos[0] * self.cell_size, obj.pos[1] * self.cell_size,
-                                                  self.cell_size, self.cell_size))
+        color = (128, 128, 128)
+        s = self.cell_size
+        n = self.grid_size
+
+        for x in range(n):
+            for y in range(n):
+                if x < y and x < n - y - 1:
+                    pygame.draw.rect(self.screen, color, (x * s, y * s, s, s))
+                elif x > y and x > n - y - 1:
+                    pygame.draw.rect(self.screen, color, (x * s, y * s, s, s))
 
     def draw_button(self, text, rect, color):
         pygame.draw.rect(self.screen, color, rect)
@@ -65,8 +76,8 @@ class SimulationVisualization:
     def menu(self):
         running = True
 
-        logo_rect = pygame.Rect(100, 50, 300, 100)
-        logo_path = 'assets/title.png'
+        logo_rect = pygame.Rect(10, 30, 480, 380)
+        logo_path = 'assets/HourglassTitle.png'
         logo_image = pygame.image.load(logo_path)
         logo_image = pygame.transform.scale(logo_image, (logo_rect.width, logo_rect.height))
 
@@ -74,21 +85,17 @@ class SimulationVisualization:
             self.screen.fill((230, 230, 230))
             self.screen.blit(logo_image, (logo_rect.x, logo_rect.y))
 
-            walk_button_rect = pygame.Rect(150, 200, 200, 50)
-            evac_button_rect = pygame.Rect(150, 300, 200, 50)
+            start_rect = pygame.Rect(120, logo_rect.bottom + 20, 270, 50)
 
-            self.draw_button("Walking", walk_button_rect, (128, 238, 128))
-            self.draw_button("Evacuation", evac_button_rect, (240, 128, 128))
+            self.draw_button("Start visualization", start_rect, (208, 168, 52))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     return None
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if walk_button_rect.collidepoint(event.pos):
-                        return "Walking"
-                    if evac_button_rect.collidepoint(event.pos):
-                        return "Evacuation"
+                    if start_rect.collidepoint(event.pos):
+                        return "Start"
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -103,8 +110,17 @@ class SimulationVisualization:
         params = ParamsChoice()
         directory = f"presets/{params.menu()}"
         self.model = CrowdModel(directory, scenario)
-        self.screen = pygame.display.set_mode((500, 500))
+
+        window_width = 1000
+        window_height = 500
+        self.screen = pygame.display.set_mode((window_width, window_height))
         pygame.display.flip()
+
+        video_path = "assets/CrowdSimulation.mp4"
+        cap = cv2.VideoCapture(video_path)
+        if cap.isOpened():
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, int(fps * 1))
 
         for agent in self.model.schedule.agents:
             self.agent_colors[agent.unique_id] = (0,150,255)
@@ -114,28 +130,40 @@ class SimulationVisualization:
                 if event.type == pygame.QUIT:
                     running = False
 
-            self.screen.fill((255, 255, 255))
+            sim_surface = pygame.Surface((500, 500))
+            sim_surface.fill((255, 255, 255))
+            self.screen.blit(sim_surface, (0, 0))
+
             self.draw_grid()
             self.draw_objectives()
             self.draw_agents()
             self.draw_obstacles()
+
+            ret, frame = cap.read()
+            if not ret:
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Loop video
+                ret, frame = cap.read()
+
+            frame = cv2.flip(frame, 0)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cv2.resize(frame, (500, 500))
+            frame_surface = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
+            self.screen.blit(frame_surface, (500, 0))
+
             pygame.display.flip()
-            self.clock.tick(30)
+            self.clock.tick(900)
+
             self.model.step()
             self.model.count_intruders()
 
-
-            # Ważne, procentowo szansa na zrespienie agenta z każdym tickiem
             if random.randint(1, 20) >= 17:
                 self.model.spawn_agent()
 
             if all(not agent.has_moved for agent in self.model.schedule.agents):
-                for agent in self.model.schedule.agents:
-                    print(agent.reached_destination)
                 running = False
 
+        cap.release()
         self.show_statistics_in_pygame()
-
         pygame.quit()
 
     def show_statistics_in_pygame(self):
