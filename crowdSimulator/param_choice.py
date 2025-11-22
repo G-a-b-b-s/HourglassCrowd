@@ -12,7 +12,7 @@ class ParamsChoice:
         pygame.font.init()
         self.font = pygame.font.SysFont("Arial", 20)
 
-        self.presets_folder = 'presets'
+        self.presets_folder = 'crowdSimulator/presets'
         self.files = self.load_presets()
 
     def load_presets(self):
@@ -83,7 +83,7 @@ class ParamsChoice:
 
                     if random_button_rect.collidepoint(event.pos):
                         random_params = self.create_random_params()
-                        random_params_file = "presets/random_params.json"
+                        random_params_file = "crowdSimulator/presets/random_params.json"
                         with open(random_params_file, "w") as f:
                             json.dump(random_params, f)
                         return "random_params.json"
