@@ -50,14 +50,15 @@ class CrowdAgent(Agent):
         return max(0, min(1, (self.personal_space_radius - distance) / self.personal_space_radius))
 
     def move_towards_goal_or_avoid_intruder(self, goal_pos):
-        intruders = [agent for agent in self.model.schedule.agents
-                     if agent.unique_id != self.unique_id and
-                     self.calculate_distance(self.pos, agent.pos) <= self.personal_space_radius]
+        # intruders = [agent for agent in self.model.schedule.agents
+        #              if agent.unique_id != self.unique_id and
+        #              self.calculate_distance(self.pos, agent.pos) <= self.personal_space_radius]
 
-        if not intruders:
-            return self.move_towards_goal(goal_pos)
+        # if not intruders:
 
-        return self.avoid_intruders(intruders, goal_pos)
+        return self.move_towards_goal(goal_pos)
+
+        # return self.avoid_intruders(intruders, goal_pos)
 
     def move_towards_goal(self, goal_pos):
         new_pos = self.get_next_position(self.pos[0], self.pos[1])
@@ -70,6 +71,9 @@ class CrowdAgent(Agent):
         #         self.model.collision_count[new_pos] = 1
         #     return False
 
+        if not self.try_reserve_position(new_pos):
+            return True
+        self.update_visited_positions(new_pos)
         self.model.grid.move_agent(self, new_pos)
         # self.update_visited_positions(new_pos)
         return True
@@ -136,11 +140,20 @@ class CrowdAgent(Agent):
                 self.update_visited_positions(new_pos)
                 return
 
+
+# Przepraszam za te warunki...
+#TODO: Make it more readable...
     def get_next_position(self, dx, dy):
         if dy == 29:
             if dx < 15:
-                return dx+1, dy
-            return dx-1, dy
+                if self.is_position_valid((dx + 1, dy)):
+                    return dx+1, dy
+                else:
+                    return dx, dy
+            if self.is_position_valid((dx-1, dy)):
+                return dx-1, dy
+            else:
+                return dx, dy
         if self.is_position_valid((dx, dy + 1)):
             return dx, dy+1
         elif self.is_position_valid((dx + 1, dy)):
@@ -175,6 +188,13 @@ class CrowdAgent(Agent):
             self.model.visited_counts[new_pos] += 1
         else:
             self.model.visited_counts[new_pos] = 1
+
+    def try_reserve_position(self, pos):
+        if pos in self.model.next_positions:
+            return False
+
+        self.model.next_positions.add(pos)
+        return True
 
 
 class Obstacle(Agent):
