@@ -10,8 +10,8 @@ class Statistics:
 
         for (x, y), count in visited_counts.items():
             visit_density[x, y] = count
-
-        fig, ax = plt.subplots(figsize=(5, 4))
+        # increase default figure size so plots are more readable in the pygame window
+        fig, ax = plt.subplots(figsize=(6, 4))
         cax = ax.imshow(visit_density.T, interpolation='nearest', cmap='viridis')
         fig.colorbar(cax, label='Częstość odwiedzin')
         ax.set_title('Mapa gęstości odwiedzin danego pola przez agentów')
@@ -22,7 +22,7 @@ class Statistics:
 
     @staticmethod
     def plot_collision_history(collision_history):
-        fig, ax = plt.subplots(figsize=(5, 4))
+        fig, ax = plt.subplots(figsize=(6, 4))
         ax.plot(collision_history, label="Kolizje w czasie", color="red")
         ax.set_xlabel("Krok symulacji")
         ax.set_ylabel("Liczba prób kolizji")
@@ -34,7 +34,7 @@ class Statistics:
 
     @staticmethod
     def plot_intruders_by_zone(intruders_history):
-        fig, ax = plt.subplots(figsize=(5, 4))
+        fig, ax = plt.subplots(figsize=(6, 4))
 
         for zone, history in intruders_history.items():
             ax.plot(history, label=f"Strefa {zone.capitalize()}", linewidth=2)

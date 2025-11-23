@@ -4,6 +4,7 @@ import pygame
 import random
 from param_choice import ParamsChoice
 from crowd_model import CrowdModel
+from statistics import Statistics
 from statistics import *
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import io
@@ -20,7 +21,8 @@ class SimulationVisualization:
         self.current_plot_index = 0
 
         pygame.init()
-        self.screen = pygame.display.set_mode((500, 500))
+        # start with a larger default window so plots and figures can be bigger
+        self.screen = pygame.display.set_mode((1200, 700))
         pygame.display.set_caption("Crowd Simulation")
         self.clock = pygame.time.Clock()
 
@@ -36,17 +38,31 @@ class SimulationVisualization:
 
     def draw_agents(self):
         for agent in self.model.schedule.agents:
-            color = (208, 168, 52)
-            pygame.draw.circle(self.screen, color, (agent.pos[0] * self.cell_size + self.cell_size // 2,
-                                                    agent.pos[1] * self.cell_size + self.cell_size // 2),
-                               self.cell_size // 3)
+            # some agents may not have a valid position (not yet placed or removed) — skip them
+            pos = getattr(agent, 'pos', None)
+            if not pos or not isinstance(pos, (tuple, list)):
+                continue
+            if pos[0] is None or pos[1] is None:
+                continue
 
-            for pos in agent.visited_positions:
+            color = (208, 168, 52)
+            try:
+                pygame.draw.circle(self.screen, color,
+                                   (pos[0] * self.cell_size + self.cell_size // 2,
+                                    pos[1] * self.cell_size + self.cell_size // 2),
+                                   self.cell_size // 3)
+            except Exception:
+                # if anything goes wrong with drawing for this agent, skip it
+                continue
+
+            for visit in getattr(agent, 'visited_positions', []):
+                if not visit or visit[0] is None or visit[1] is None:
+                    continue
                 trail_surface = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)
                 trail_color = (*color, 30)
                 pygame.draw.circle(trail_surface, trail_color,
                                    (self.cell_size // 2, self.cell_size // 2), self.cell_size // 3)
-                self.screen.blit(trail_surface, (pos[0] * self.cell_size, pos[1] * self.cell_size))
+                self.screen.blit(trail_surface, (visit[0] * self.cell_size, visit[1] * self.cell_size))
 
     def draw_objectives(self):
         for obj in self.model.destinations:
@@ -77,7 +93,7 @@ class SimulationVisualization:
         running = True
 
         logo_rect = pygame.Rect(10, 30, 480, 380)
-        logo_path = 'assets/HourglassTitle.png'
+        logo_path = 'crowdSimulator/assets/HourglassTitle.png'
         logo_image = pygame.image.load(logo_path)
         logo_image = pygame.transform.scale(logo_image, (logo_rect.width, logo_rect.height))
 
@@ -108,15 +124,18 @@ class SimulationVisualization:
         running = True
 
         params = ParamsChoice()
-        directory = f"presets/{params.menu()}"
+        directory = f"crowdSimulator/presets/{params.menu()}"
         self.model = CrowdModel(directory, scenario)
 
-        window_width = 1000
-        window_height = 500
+        window_width = 1200
+        window_height = 700
         self.screen = pygame.display.set_mode((window_width, window_height))
+        sim_width = window_width // 2
+        sim_height = window_height
+        self.cell_size = sim_width // self.grid_size
         pygame.display.flip()
 
-        video_path = "assets/CrowdSimulation.mp4"
+        video_path = "crowdSimulator/assets/CrowdSimulation.mp4"
         cap = cv2.VideoCapture(video_path)
         if cap.isOpened():
             fps = cap.get(cv2.CAP_PROP_FPS)
@@ -130,7 +149,7 @@ class SimulationVisualization:
                 if event.type == pygame.QUIT:
                     running = False
 
-            sim_surface = pygame.Surface((500, 500))
+            sim_surface = pygame.Surface((sim_width, sim_height))
             sim_surface.fill((255, 255, 255))
             self.screen.blit(sim_surface, (0, 0))
 
@@ -146,9 +165,11 @@ class SimulationVisualization:
 
             frame = cv2.flip(frame, 0)
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame = cv2.resize(frame, (500, 500))
+            # resize video frame to match the simulation area
+            frame = cv2.resize(frame, (sim_width, sim_height))
             frame_surface = pygame.surfarray.make_surface(frame.swapaxes(0, 1))
-            self.screen.blit(frame_surface, (500, 0))
+            # blit the video/frame to the right half of the window
+            self.screen.blit(frame_surface, (sim_width, 0))
 
             pygame.display.flip()
             self.clock.tick(900)
@@ -191,6 +212,16 @@ class SimulationVisualization:
 
     def add_plot(self, fig):
         surface = self.figure_to_surface(fig)
+        # scale plot surface down if it's larger than the window
+        win_w, win_h = self.screen.get_size()
+        surf_w, surf_h = surface.get_size()
+        max_w = win_w - 40
+        max_h = win_h - 40
+        scale = min(1.0, float(max_w) / surf_w, float(max_h) / surf_h)
+        if scale < 1.0:
+            new_size = (int(surf_w * scale), int(surf_h * scale))
+            surface = pygame.transform.smoothscale(surface, new_size)
+
         self.plots.append(surface)
 
     def show_plots(self):
@@ -201,7 +232,8 @@ class SimulationVisualization:
 
             if self.plots:
                 plot_surface = self.plots[self.current_plot_index]
-                plot_rect = plot_surface.get_rect(center=(250, 250))
+                win_w, win_h = self.screen.get_size()
+                plot_rect = plot_surface.get_rect(center=(win_w // 2, win_h // 2))
                 self.screen.blit(plot_surface, plot_rect.topleft)
 
             for event in pygame.event.get():
