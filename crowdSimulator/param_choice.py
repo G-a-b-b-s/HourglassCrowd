@@ -34,12 +34,15 @@ class ParamsChoice:
     def create_random_params(self):
         params = {
             "num_agents": random.randint(5, 20),
-            "num_objectives": random.randint(1, 5),
+            "num_objectives": len(range(0, 30)),
             "num_obstacles": random.randint(30, 50),
-            "randomize_objectives": True,
+            "randomize_objectives": False,
+            "objectives": [
+                {"position": [i, 29], "preset": "exit", "color": [0, 0, 128]} for i in range(0, 30)                
+            ],
             "randomize_obstacles": True,
-            "grid_width": 20,
-            "grid_height": 20,
+            "grid_width": 30,
+            "grid_height": 30,
         }
 
         return params

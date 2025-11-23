@@ -14,8 +14,8 @@ class CrowdModel(mesa.Model):
         self.params = params
         self.num_agents = params.get("num_agents", 10)
         self.num_destinations = params.get("num_objectives", 3)
-        self.grid_width = params.get("grid_width", 20)
-        self.grid_height = params.get("grid_height", 20)
+        self.grid_width = params.get("grid_width", 30)
+        self.grid_height = params.get("grid_height", 30)
         self.randomize_obstacles = params.get("randomize_obstacles", False)
         self.randomize_objectives = params.get("randomize_objectives", False)
         self.obstacles = []
@@ -104,11 +104,11 @@ class CrowdModel(mesa.Model):
         if len(self.schedule.agents) < self.num_agents + 10:
             destination = self.random.choice(self.destinations)
 
+            dest_x, dest_y = destination.pos
+
+            # create agent but don't add to the schedule until it has a valid placement
             new_agent_id = len(self.schedule.agents)
             new_agent = CrowdAgent(new_agent_id, self, self.scenario)
-            self.schedule.add(new_agent)
-
-            dest_x, dest_y = destination.pos
 
             offsets = [
                 (-1, -1), (-1, 0), (-1, 1),
@@ -118,6 +118,7 @@ class CrowdModel(mesa.Model):
 
             self.random.shuffle(offsets)
 
+            placed = False
             for offset in offsets:
                 x = dest_x + offset[0]
                 y = dest_y + offset[1]
@@ -126,9 +127,15 @@ class CrowdModel(mesa.Model):
                     if self.grid.is_cell_empty((x, y)):
                         self.grid.place_agent(new_agent, (x, y))
                         new_agent.pos = (x, y)
+                        placed = True
                         break
+                else:
+                    print(self.grid.width, self.grid.height)
 
-            new_agent.destination = self.random.choice(self.destinations)
+            if placed:
+                # only add to schedule once placement succeeded
+                self.schedule.add(new_agent)
+                new_agent.destination = self.random.choice(self.destinations)
 
     def count_intruders(self):
         zones = {

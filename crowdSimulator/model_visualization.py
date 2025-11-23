@@ -38,17 +38,31 @@ class SimulationVisualization:
 
     def draw_agents(self):
         for agent in self.model.schedule.agents:
-            color = (208, 168, 52)
-            pygame.draw.circle(self.screen, color, (agent.pos[0] * self.cell_size + self.cell_size // 2,
-                                                    agent.pos[1] * self.cell_size + self.cell_size // 2),
-                               self.cell_size // 3)
+            # some agents may not have a valid position (not yet placed or removed) — skip them
+            pos = getattr(agent, 'pos', None)
+            if not pos or not isinstance(pos, (tuple, list)):
+                continue
+            if pos[0] is None or pos[1] is None:
+                continue
 
-            for pos in agent.visited_positions:
+            color = (208, 168, 52)
+            try:
+                pygame.draw.circle(self.screen, color,
+                                   (pos[0] * self.cell_size + self.cell_size // 2,
+                                    pos[1] * self.cell_size + self.cell_size // 2),
+                                   self.cell_size // 3)
+            except Exception:
+                # if anything goes wrong with drawing for this agent, skip it
+                continue
+
+            for visit in getattr(agent, 'visited_positions', []):
+                if not visit or visit[0] is None or visit[1] is None:
+                    continue
                 trail_surface = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)
                 trail_color = (*color, 30)
                 pygame.draw.circle(trail_surface, trail_color,
                                    (self.cell_size // 2, self.cell_size // 2), self.cell_size // 3)
-                self.screen.blit(trail_surface, (pos[0] * self.cell_size, pos[1] * self.cell_size))
+                self.screen.blit(trail_surface, (visit[0] * self.cell_size, visit[1] * self.cell_size))
 
     def draw_objectives(self):
         for obj in self.model.destinations:
