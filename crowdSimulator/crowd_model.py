@@ -13,6 +13,7 @@ class CrowdModel(mesa.Model):
 
         self.agents_count_id = 0
         self.params = params
+        self.next_positions = set()
         self.num_agents = params.get("num_agents", 10)
         self.num_destinations = params.get("num_objectives", 3)
         self.grid_width = params.get("grid_width", 30)
@@ -149,6 +150,7 @@ class CrowdModel(mesa.Model):
     #         self.intruders_history[zone].append(zone_counts[zone])
 
     def step(self):
+        self.next_positions.clear()
         self.schedule.step()
 
         # total_collisions = sum(self.collision_count.values())
