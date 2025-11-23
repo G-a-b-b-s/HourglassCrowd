@@ -173,9 +173,15 @@ class SimulationVisualization:
                                                      self.model.grid.height)
         fig2 = stats.plot_collision_history(self.model.collision_history)
         fig3 = stats.plot_intruders_by_zone(self.model.intruders_history)
+        fig4 = stats.plot_most_used_paths(self.model.path_counts, self.model.grid.width,
+                                                     self.model.grid.height)
+        fig5 = stats.plot_wall_clusters(self.model.agents, self.model.grid.width,
+                                                     self.model.grid.height)
         self.add_plot(fig1)
         self.add_plot(fig2)
         self.add_plot(fig3)
+        self.add_plot(fig4)
+        self.add_plot(fig5)
 
         self.show_plots()
 

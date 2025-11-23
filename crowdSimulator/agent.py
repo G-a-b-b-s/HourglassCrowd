@@ -147,6 +147,14 @@ class CrowdAgent(Agent):
                 self.model.grid.is_cell_empty(pos))
 
     def update_visited_positions(self, new_pos):
+        if self.visited_positions:
+            last_pos = self.visited_positions[-1]
+            edge = (last_pos, new_pos)
+            if edge in self.model.path_counts:
+                self.model.path_counts[edge] += 1
+            else:
+                self.model.path_counts[edge] = 1
+
         self.visited_positions.append(new_pos)
         if len(self.visited_positions) > self.memory_limit:
             self.visited_positions.pop(0)

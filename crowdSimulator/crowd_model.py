@@ -24,8 +24,10 @@ class CrowdModel(mesa.Model):
 
         self.grid = mesa.space.SingleGrid(self.grid_width, self.grid_height, False)
         self.schedule = mesa.time.SimultaneousActivation(self)
+        self.agents = []
         self.visited_counts = {}
         self.collision_count = {}
+        self.path_counts = {}
         self.collision_history = []
         self.intruders_history = {"intimate": [], "personal": [], "social": []}
 
@@ -54,6 +56,7 @@ class CrowdModel(mesa.Model):
     def generate_agents(self):
         for i in range(self.num_agents):
             a = CrowdAgent(len(self.schedule.agents), self, self.scenario)
+            self.agents.append(a)
             self.schedule.add(a)
 
             while True:
@@ -106,6 +109,7 @@ class CrowdModel(mesa.Model):
 
             new_agent_id = len(self.schedule.agents)
             new_agent = CrowdAgent(new_agent_id, self, self.scenario)
+            self.agents.append(new_agent)
             self.schedule.add(new_agent)
 
             dest_x, dest_y = destination.pos
@@ -126,6 +130,7 @@ class CrowdModel(mesa.Model):
                     if self.grid.is_cell_empty((x, y)):
                         self.grid.place_agent(new_agent, (x, y))
                         new_agent.pos = (x, y)
+
                         break
 
             new_agent.destination = self.random.choice(self.destinations)
