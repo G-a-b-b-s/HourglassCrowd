@@ -147,6 +147,7 @@ class CrowdModel(mesa.Model):
                     if self.grid.is_cell_empty((x, y)):
                         self.grid.place_agent(new_agent, (x, y))
                         new_agent.pos = (x, y)
+
                         break
 
             if placed:
