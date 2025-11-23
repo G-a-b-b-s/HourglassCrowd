@@ -12,7 +12,7 @@ class ParamsChoice:
         pygame.font.init()
         self.font = pygame.font.SysFont("Arial", 20)
 
-        self.presets_folder = 'crowdSimulator/presets'
+        self.presets_folder = 'presets'
         self.files = self.load_presets()
 
     def load_presets(self):

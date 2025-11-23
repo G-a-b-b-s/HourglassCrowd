@@ -6,9 +6,10 @@ import math
 
 
 class CrowdAgent(Agent):
-    def __init__(self, unique_id, model, scenario):
+    def __init__(self, unique_id, model, scenario, obstacles):
         super().__init__(unique_id, model)
         self.steps = 0
+        self.obstacles = obstacles
         self.collision_attempts = 0
         self.velocity = 0.02
         self.destination = Destination((0, 0), 'no', (0, 0, 0))
@@ -59,19 +60,18 @@ class CrowdAgent(Agent):
         return self.avoid_intruders(intruders, goal_pos)
 
     def move_towards_goal(self, goal_pos):
-        dx, dy = goal_pos[0] - self.pos[0], goal_pos[1] - self.pos[1]
-        new_pos = self.get_next_position(dx, dy)
+        new_pos = self.get_next_position(self.pos[0], self.pos[1])
 
-        if not self.is_position_valid(new_pos):
-            self.collision_attempts += 1
-            if new_pos in self.model.collision_count:
-                self.model.collision_count[new_pos] += 1
-            else:
-                self.model.collision_count[new_pos] = 1
-            return False
+        # if not self.is_position_valid(new_pos):
+        #     self.collision_attempts += 1
+        #     if new_pos in self.model.collision_count:
+        #         self.model.collision_count[new_pos] += 1
+        #     else:
+        #         self.model.collision_count[new_pos] = 1
+        #     return False
 
         self.model.grid.move_agent(self, new_pos)
-        self.update_visited_positions(new_pos)
+        # self.update_visited_positions(new_pos)
         return True
 
     def avoid_intruders(self, intruders, goal_pos):
@@ -137,14 +137,26 @@ class CrowdAgent(Agent):
                 return
 
     def get_next_position(self, dx, dy):
-        if abs(dx) > abs(dy):
-            return (self.pos[0] + (1 if dx > 0 else -1), self.pos[1])
-        return (self.pos[0], self.pos[1] + (1 if dy > 0 else -1))
+        if dy == 29:
+            if dx < 15:
+                return dx+1, dy
+            return dx-1, dy
+        if self.is_position_valid((dx, dy + 1)):
+            return dx, dy+1
+        elif self.is_position_valid((dx + 1, dy)):
+            return dx + 1, dy
+        elif self.is_position_valid((dx - 1, dy)):
+            return dx - 1, dy
+        return dx, dy
+        # if abs(dx) > abs(dy):
+        #     return (self.pos[0] + (1 if dx > 0 else -1), self.pos[1])
+        # return (self.pos[0], self.pos[1] + (1 if dy > 0 else -1))
 
     def is_position_valid(self, pos):
         return (0 <= pos[0] < self.model.grid.width and
                 0 <= pos[1] < self.model.grid.height and
-                self.model.grid.is_cell_empty(pos))
+                self.model.grid.is_cell_empty(pos) and
+                pos not in [o.pos for o in self.obstacles])
 
     def update_visited_positions(self, new_pos):
         self.visited_positions.append(new_pos)

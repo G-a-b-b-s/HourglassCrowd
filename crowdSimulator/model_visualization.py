@@ -93,7 +93,7 @@ class SimulationVisualization:
         running = True
 
         logo_rect = pygame.Rect(10, 30, 480, 380)
-        logo_path = 'crowdSimulator/assets/HourglassTitle.png'
+        logo_path = 'assets/HourglassTitle.png'
         logo_image = pygame.image.load(logo_path)
         logo_image = pygame.transform.scale(logo_image, (logo_rect.width, logo_rect.height))
 
@@ -124,7 +124,7 @@ class SimulationVisualization:
         running = True
 
         params = ParamsChoice()
-        directory = f"crowdSimulator/presets/{params.menu()}"
+        directory = f"presets/{params.menu()}"
         self.model = CrowdModel(directory, scenario)
 
         window_width = 1200
@@ -135,7 +135,7 @@ class SimulationVisualization:
         self.cell_size = sim_width // self.grid_size
         pygame.display.flip()
 
-        video_path = "crowdSimulator/assets/CrowdSimulation.mp4"
+        video_path = "assets/CrowdSimulation.mp4"
         cap = cv2.VideoCapture(video_path)
         if cap.isOpened():
             fps = cap.get(cv2.CAP_PROP_FPS)
@@ -175,10 +175,10 @@ class SimulationVisualization:
             self.clock.tick(900)
 
             self.model.step()
-            self.model.count_intruders()
+            # self.model.count_intruders()
 
-            if random.randint(1, 20) >= 17:
-                self.model.spawn_agent()
+            # if random.randint(1, 20) >= 17:
+            #     self.model.spawn_agent()
 
             if all(not agent.has_moved for agent in self.model.schedule.agents):
                 running = False
