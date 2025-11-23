@@ -26,8 +26,10 @@ class CrowdModel(mesa.Model):
 
         self.grid = mesa.space.SingleGrid(self.grid_width, self.grid_height, False)
         self.schedule = mesa.time.SimultaneousActivation(self)
+        self.agents = []
         self.visited_counts = {}
         self.collision_count = {}
+        self.path_counts = {}
         self.collision_history = []
         self.intruders_history = {"intimate": [], "personal": [], "social": []}
 
@@ -59,6 +61,7 @@ class CrowdModel(mesa.Model):
     def generate_agents(self):
         for i in range(self.num_agents):
             a = CrowdAgent(len(self.schedule.agents), self, self.scenario, self.obstacles)
+            self.agents.append(a)
             self.schedule.add(a)
 
             x, y = self.get_place_for_agent()
@@ -121,6 +124,31 @@ class CrowdModel(mesa.Model):
                     placed = True
             else:
                 print(self.grid.width, self.grid.height)
+            destination = self.random.choice(self.destinations)
+
+            self.agents.append(new_agent)
+            self.schedule.add(new_agent)
+
+            dest_x, dest_y = destination.pos
+
+            offsets = [
+                (-1, -1), (-1, 0), (-1, 1),
+                (0, -1), (0, 1),
+                (1, -1), (1, 0), (1, 1)
+            ]
+
+            self.random.shuffle(offsets)
+
+            for offset in offsets:
+                x = dest_x + offset[0]
+                y = dest_y + offset[1]
+
+                if (0 <= x < self.grid.width) and (0 <= y < self.grid.height):
+                    if self.grid.is_cell_empty((x, y)):
+                        self.grid.place_agent(new_agent, (x, y))
+                        new_agent.pos = (x, y)
+
+                        break
 
             if placed:
                 # only add to schedule once placement succeeded
